@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d1b2a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>UHT Filling — Barcode Scanner</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ── Screen 1: Login ─────────────────────────────────────────────────── -->
+  <div id="screen-login" class="screen active">
+    <header>
+      <div>
+        <h1>UHT Filling</h1>
+        <p class="header-sub">Barcode Scanner System</p>
+      </div>
+    </header>
+    <main class="form-container">
+      <h2 class="section-heading">Operator Login</h2>
+      <div class="form-group">
+        <label for="login-username">Username</label>
+        <input type="text" id="login-username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" autocomplete="off">
+      </div>
+      <div id="login-error" class="error-msg hidden"></div>
+      <button id="btn-login" class="btn btn-primary btn-full">Login</button>
+    </main>
+  </div>
+
+  <!-- ── Screen 2: Session Setup ─────────────────────────────────────────── -->
+  <div id="screen-setup" class="screen hidden">
+    <header>
+      <div>
+        <h1>Session Setup</h1>
+        <p class="header-sub" id="setup-operator-info"></p>
+      </div>
+      <button id="btn-logout" class="btn btn-ghost">Logout</button>
+    </header>
+    <main class="form-container">
+      <div class="form-group">
+        <label>Machine (locked)</label>
+        <input type="text" id="setup-machine" readonly class="readonly-field">
+      </div>
+      <div class="form-group">
+        <label for="setup-date">Product Date</label>
+        <input type="date" id="setup-date">
+      </div>
+      <div class="form-group">
+        <label for="setup-product">Product ID</label>
+        <select id="setup-product">
+          <option value="">— Select Product —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="setup-flavor">Flavor (auto-filled)</label>
+        <input type="text" id="setup-flavor" readonly class="readonly-field">
+      </div>
+      <div class="form-group">
+        <label for="setup-starting-brik">Starting Brik Number</label>
+        <input type="number" id="setup-starting-brik" min="1" max="40" value="1">
+      </div>
+
+      <div class="brik-grid-section">
+        <p class="section-label">Brik Status — Today's Record</p>
+        <div id="brik-status-grid" class="brik-grid"></div>
+        <p class="brik-legend">
+          <span class="legend-swatch filled"></span> Filled &nbsp;
+          <span class="legend-swatch empty"></span> Empty &nbsp;
+          <span class="legend-swatch selected"></span> Starting here
+        </p>
+      </div>
+
+      <button id="btn-start-scanning" class="btn btn-primary btn-full">Start Scanning</button>
+      <button id="btn-go-sync" class="btn btn-secondary btn-full">View Sync Queue</button>
+    </main>
+  </div>
+
+  <!-- ── Screen 3: Slot Entry (Scanning) ────────────────────────────────── -->
+  <div id="screen-scanning" class="screen hidden">
+    <header>
+      <button id="btn-back-to-setup" class="btn btn-ghost">&#8592; Back</button>
+      <div class="header-center">
+        <h1 id="scan-brik-label">Brik 1 of 40</h1>
+        <p class="header-sub" id="scan-session-info"></p>
+      </div>
+    </header>
+    <div class="progress-bar-wrap">
+      <div id="scan-progress-bar" class="progress-bar" style="width:0%"></div>
+    </div>
+    <main>
+      <div class="form-container">
+        <div class="form-group">
+          <label for="scan-barcode">Barcode</label>
+          <input type="text" id="scan-barcode" class="input-large"
+                 autocomplete="off" autocapitalize="off" autocorrect="off"
+                 spellcheck="false" placeholder="Scan barcode…">
+        </div>
+        <div class="form-group">
+          <label for="scan-depositing">Depositing</label>
+          <input type="text" id="scan-depositing" class="input-large" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="scan-opt">OPT</label>
+            <input type="number" id="scan-opt" class="input-large" inputmode="numeric">
+          </div>
+          <div class="form-group half">
+            <label for="scan-supplier">Supplier</label>
+            <input type="number" id="scan-supplier" class="input-large" inputmode="numeric">
+          </div>
+        </div>
+
+        <button id="btn-add-brik" class="btn btn-primary btn-full" disabled>
+          Add Next Brik &#8594;
+        </button>
+        <button id="btn-finish-save" class="btn btn-accent btn-full">
+          Finish &amp; Save Session
+        </button>
+      </div>
+
+      <div class="completed-list-wrap">
+        <h3 class="section-label">Completed Briks</h3>
+        <div id="completed-list"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── Screen 4: Sync ─────────────────────────────────────────────────── -->
+  <div id="screen-sync" class="screen hidden">
+    <header>
+      <button id="btn-back-to-setup2" class="btn btn-ghost">&#8592; Back</button>
+      <div>
+        <h1>Sync Queue</h1>
+        <p class="header-sub">Pending uploads to server</p>
+      </div>
+      <div id="online-indicator" class="online-indicator">
+        <span id="online-dot" class="dot dot-offline"></span>
+        <span id="online-label" class="dot-label">Offline</span>
+      </div>
+    </header>
+    <main class="form-container">
+      <div id="sessions-list"></div>
+      <button id="btn-sync-all" class="btn btn-primary btn-full" disabled>
+        Sync to Server
+      </button>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "UHT Filling Scanner",
+  "short_name": "UHT Scan",
+  "description": "Offline-first barcode scanning for UHT filling machines",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1b2a",
+  "theme_color": "#0d1b2a",
+  "icons": []
+}
