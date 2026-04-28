@@ -1,4 +1,4 @@
-const CACHE = 'uht-filling-v1';
+const CACHE = 'uht-filling-v4';
 const SHELL = ['/', '/index.html', '/app.js', '/styles.css', '/sw.js', '/manifest.json'];
 
 self.addEventListener('install', e => {

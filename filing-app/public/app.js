@@ -201,6 +201,9 @@ async function fetchAndCacheMachineStatus(machine, date) {
     if (!resp.ok) return;
     const status = await resp.json();
     await cacheSet(`machine-status:${machine}:${date}`, status);
+    if (status && status.Product_ID) {
+      await cacheSet(`last-product:${machine}`, status.Product_ID);
+    }
   } catch { /* offline */ }
 }
 
@@ -226,20 +229,13 @@ el('btn-go-sync').addEventListener('click', () => {
   loadSyncScreen();
 });
 
-el('setup-product').addEventListener('change', async function () {
-  const productId = this.value;
-  if (!productId) { el('setup-flavor').value = ''; return; }
-  const flavor = await cacheGet(`flavor:${productId}`);
-  el('setup-flavor').value = flavor || '';
-});
-
 el('setup-date').addEventListener('change', async () => {
   const date = el('setup-date').value;
   await fetchAndCacheMachineStatus(session.machineName, date);
   await renderBrikGrid();
 });
 
-el('setup-starting-brik').addEventListener('input', renderBrikGrid);
+el('setup-starting-brik').addEventListener('input', () => renderBrikGrid(true));
 
 el('btn-start-scanning').addEventListener('click', () => {
   const productId    = el('setup-product').value;
@@ -276,36 +272,36 @@ async function loadSetupScreen() {
     el('setup-date').value = todayISO();
   }
 
-  await populateProductDropdown();
+  const lastProduct = await cacheGet(`last-product:${session.machineName}`);
+  if (lastProduct) {
+    el('setup-product').value = lastProduct;
+    const flavor = await cacheGet(`flavor:${lastProduct}`);
+    el('setup-flavor').value = flavor || '';
+  }
+
   await renderBrikGrid();
 }
 
-async function populateProductDropdown() {
-  const products = await cacheGet(`products:${session.machineName}`) || [];
-  const select   = el('setup-product');
-  const current  = select.value;
+async function renderBrikGrid(skipAutoDetect = false) {
+  const date   = el('setup-date').value || todayISO();
+  const status = await cacheGet(`machine-status:${session.machineName}:${date}`);
 
-  select.innerHTML = '<option value="">— Select Product —</option>';
-  products.forEach(p => {
-    const opt  = document.createElement('option');
-    opt.value  = p.Product_ID;
-    opt.textContent = p.Product_ID;
-    select.appendChild(opt);
-  });
-
-  if (current) {
-    select.value = current;
-    // Re-populate flavor if product was already selected
-    const flavor = await cacheGet(`flavor:${current}`);
-    el('setup-flavor').value = flavor || '';
+  // Auto-detect first empty brik (runs on the first call only)
+  if (!skipAutoDetect) {
+    let firstEmpty = null;
+    for (let i = 1; i <= 40; i++) {
+      const val = status && status[`Barcode ${i}`];
+      if (!val || String(val).trim() === '') { firstEmpty = i; break; }
+    }
+    if (firstEmpty === null) {
+      el('setup-starting-brik').value = 40;
+      showToast('All briks already filled for this date!', 'error', 5000);
+    } else {
+      el('setup-starting-brik').value = firstEmpty;
+    }
   }
-}
 
-async function renderBrikGrid() {
-  const date         = el('setup-date').value || todayISO();
   const startingBrik = parseInt(el('setup-starting-brik').value) || 1;
-  const status       = await cacheGet(`machine-status:${session.machineName}:${date}`);
-
   const grid = el('brik-status-grid');
   grid.innerHTML = '';
 
@@ -365,14 +361,31 @@ function checkSlotReady() {
   el('btn-add-brik').disabled = !ok;
 }
 
-['scan-barcode', 'scan-depositing', 'scan-opt', 'scan-supplier']
+['scan-barcode', 'scan-opt', 'scan-supplier']
   .forEach(id => el(id).addEventListener('input', checkSlotReady));
 
-// Barcode scanner fires Enter after the code — advance focus to depositing
+el('scan-depositing').addEventListener('change', checkSlotReady);
+
+// Barcode scanner fires Enter after the code — advance focus to depositing select
 el('scan-barcode').addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     e.preventDefault();
     el('scan-depositing').focus();
+  }
+});
+
+// L/R keyboard shortcuts on the depositing select for fast entry
+el('scan-depositing').addEventListener('keydown', e => {
+  if (e.key === 'l' || e.key === 'L') {
+    e.preventDefault();
+    el('scan-depositing').value = 'L';
+    checkSlotReady();
+    el('scan-opt').focus();
+  } else if (e.key === 'r' || e.key === 'R') {
+    e.preventDefault();
+    el('scan-depositing').value = 'R';
+    checkSlotReady();
+    el('scan-opt').focus();
   }
 });
 

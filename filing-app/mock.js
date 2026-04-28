@@ -3,10 +3,19 @@
 
 const today = new Date().toISOString().split('T')[0];
 
-const mockOperators = [
-  { id: 1, username: 'simon',     password: '1234', machine_name: 'M1' },
-  { id: 2, username: 'operator2', password: '1234', machine_name: 'M2' },
+const MACHINES = [
+  'A1','A3','A5','B1','B2','B3','C1','D1','D2','D3',
+  'F1','F2','F3','F4','G1','G2','G3','H1','H2','H3',
+  'I1','I2','K1','K2','M1','M2','M3',
 ];
+
+// username = password = machine_name for every operator
+const mockOperators = MACHINES.map((m, i) => ({
+  id: i + 1,
+  username: m,
+  password: m,
+  machine_name: m,
+}));
 
 const mockProducts = [
   { Product_ID: 'P001', Flavor: 'Chocolate',  Machine: 'M1' },
@@ -25,7 +34,7 @@ const mockMachineStatus = (() => {
   };
   for (let i = 1; i <= 40; i++) {
     row[`Barcode ${i}`]    = i <= 5 ? `BC00${i}` : '';
-    row[`depositing ${i}`] = i <= 5 ? `DEP00${i}` : '';
+    row[`depositing ${i}`] = i <= 5 ? 'L' : '';
     row[`OPT${i}`]         = i <= 5 ? i : null;
     row[`Supplier${i}`]    = i <= 5 ? 10 + i : null;
   }
