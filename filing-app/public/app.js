@@ -159,7 +159,7 @@ async function doLogin() {
     // Pre-fetch and cache immediately after login
     await Promise.all([
       fetchAndCacheProducts(session.machineName),
-      fetchAndCacheMachineStatus(session.machineName, todayISO()),
+      fetchAndCacheMachineStatus(session.machineName),
     ]);
 
     showScreen('screen-setup');
@@ -192,10 +192,10 @@ async function fetchAndCacheProducts(machine) {
   } catch { /* offline — rely on existing cache */ }
 }
 
-async function fetchAndCacheMachineStatus(machine, date) {
+async function fetchAndCacheMachineStatus(machine) {
   try {
     const resp = await fetch(
-      `/api/machine-status?machine=${encodeURIComponent(machine)}&date=${encodeURIComponent(date)}`,
+      `/api/machine-status?machine=${encodeURIComponent(machine)}`,
       { signal: AbortSignal.timeout(8000) }
     );
     if (!resp.ok) return;
@@ -230,8 +230,7 @@ el('btn-go-sync').addEventListener('click', () => {
 });
 
 el('setup-date').addEventListener('change', async () => {
-  const date = el('setup-date').value;
-  await fetchAndCacheMachineStatus(session.machineName, date);
+  await fetchAndCacheMachineStatus(session.machineName);
   await renderBrikGrid();
 });
 

@@ -5,8 +5,11 @@ echo  UHT Filling App - Starting...
 echo ================================
 echo.
 
-REM ── Change this path if you extracted nodejs zip to a different folder ──
-set NODE_PATH=C:\Users\a\nodejs
+REM ── Map network drive first ──
+net use Z: "\\dpf-nas5\Automation&Calibration" >nul 2>&1
+
+REM ── Change this path if nodejs is in a different location ──
+set NODE_PATH=Z:\Automation\App\node.js\node-v24.15.0-win-x64
 
 set PATH=%NODE_PATH%;%PATH%
 

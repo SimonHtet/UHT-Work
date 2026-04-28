@@ -58,15 +58,17 @@ app.post('/api/login', async (req, res) => {
     const result = await db.request()
       .input('username', sql.VarChar, username)
       .input('password', sql.VarChar, password)
-      .query(`SELECT id, username, machine_name
-              FROM operators
-              WHERE username = @username AND password = @password`);
+      .query(`SELECT [user], password, fullname
+              FROM [tb_app1_login]
+              WHERE [user] = @username AND password = @password`);
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    const op = result.recordset[0];
-    res.json({ operatorId: op.id, username: op.username, machineName: op.machine_name });
+    const row = result.recordset[0];
+    const parts = (row.fullname || '').split('_');
+    const machineName = parts[parts.length - 1];
+    res.json({ operatorId: 1, username: row.user, machineName });
   } catch (err) {
     console.error('Login error:', err.message);
     res.status(500).json({ error: 'Database error' });
@@ -86,10 +88,11 @@ app.get('/api/products', async (req, res) => {
     const db = await getPool();
     const result = await db.request()
       .input('machine', sql.VarChar, machine)
-      .query(`SELECT DISTINCT Product_ID, Flavor
-              FROM [product table]
-              WHERE Machine = @machine
-              ORDER BY Product_ID`);
+      .query(`SELECT DISTINCT [Product_ID], [Flavor]
+              FROM [Change paper brik]
+              WHERE [Machine] = @machine
+              AND [Product_ID] IS NOT NULL
+              ORDER BY [Product_ID]`);
 
     res.json(result.recordset);
   } catch (err) {
@@ -113,7 +116,10 @@ app.get('/api/flavor', async (req, res) => {
     const db = await getPool();
     const result = await db.request()
       .input('productId', sql.VarChar, productId)
-      .query(`SELECT TOP 1 Flavor FROM [product table] WHERE Product_ID = @productId`);
+      .query(`SELECT TOP 1 [Flavor]
+              FROM [Change paper brik]
+              WHERE [Product_ID] = @productId
+              AND [Flavor] IS NOT NULL`);
 
     if (result.recordset.length === 0) {
       return res.status(404).json({ error: 'Product not found' });
@@ -125,11 +131,11 @@ app.get('/api/flavor', async (req, res) => {
   }
 });
 
-// ── GET /api/machine-status?machine=&date= ────────────────────────────────────
+// ── GET /api/machine-status?machine= ─────────────────────────────────────────
 app.get('/api/machine-status', async (req, res) => {
-  const { machine, date } = req.query;
-  if (!machine || !date) {
-    return res.status(400).json({ error: 'machine and date required' });
+  const { machine } = req.query;
+  if (!machine) {
+    return res.status(400).json({ error: 'machine required' });
   }
 
   if (MOCK_MODE) {
@@ -141,11 +147,10 @@ app.get('/api/machine-status', async (req, res) => {
     const db = await getPool();
     const result = await db.request()
       .input('machine', sql.VarChar, machine)
-      .input('date', sql.Date, date)
       .query(`SELECT TOP 1 *
               FROM [Change paper brik]
-              WHERE Machine = @machine AND [Product Date] = @date
-              ORDER BY id DESC`);
+              WHERE [Machine] = @machine
+              ORDER BY [id] DESC`);
 
     res.json(result.recordset.length > 0 ? result.recordset[0] : null);
   } catch (err) {
